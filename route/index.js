@@ -4,7 +4,7 @@ const multer = require('multer');
 const { Readable, Transform } = require('node:stream')
 const csvParser = require('csv-parser');
 const streamDataEntry = require('../model')
-const {pipeline} = require('stream')
+
 
 // Set up Multer for file upload
 const storage = multer.memoryStorage();
@@ -19,11 +19,28 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   
       // Stream and parse CSV file
       const entries = await FileuploadProcess(req.file.buffer);
-      
+  
+      // Divide entries into batches of 1000
+      const batches = [];
+      let batch = [];
       for (const entry of entries) {
-        await streamDataEntry.insertMany(entry);
+        batch.push(entry);
+        if (batch.length === 1000) {
+          batches.push(batch);
+          batch = [];
+        }
       }
-     res.status(200).send('File has been successfully uploaded.');
+      if (batch.length > 0) {
+        batches.push(batch);
+      }
+  
+      // Save entries in batches
+      for (const batch of batches) {
+        //using the insertMany method instead of inserting each entry individually. This is more efficient
+        await streamDataEntry.insertMany(batch);
+      }
+  
+      res.status(200).send('File uploaded and entries saved to the database.');
     } catch (error) {
       console.error(error);
       res.status(500).send('Error processing the file.');
@@ -32,13 +49,13 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   
   // Function to normalize MSISDN to international format
   function normalizeMSISDN(msisdn) {
-    // Example: Assuming all MSISDNs start with '0' and you want to replace it with '+44'
+    // Example: Assuming all MSISDNs start with '0' and you want to replace it with '+234'
     return `+44${msisdn.slice(1)}`;
   }
   
   // Function to process CSV file
   async function FileuploadProcess(buffer) {
-
+ 
     const readStream = new Readable();
     readStream.push(buffer);
     readStream.push(null); // Signal the end of the stream
