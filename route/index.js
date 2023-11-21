@@ -40,10 +40,10 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         await streamDataEntry.insertMany(batch);
       }
   
-      res.status(200).send('File uploaded and entries saved to the database.');
+      res.status(200).send('Your data file has been successfully uploaded.');
     } catch (error) {
       console.error(error);
-      res.status(500).send('Error processing the file.');
+      res.status(500).send('Proceessing data file error, please check file and try again.');
     }
   });
   
