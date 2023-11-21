@@ -19,28 +19,11 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   
       // Stream and parse CSV file
       const entries = await FileuploadProcess(req.file.buffer);
-  
-      // Divide entries into batches of 1000
-      const batches = [];
-      let batch = [];
+      
       for (const entry of entries) {
-        batch.push(entry);
-        if (batch.length === 1000) {
-          batches.push(batch);
-          batch = [];
-        }
+        await streamDataEntry.insertMany(entry);
       }
-      if (batch.length > 0) {
-        batches.push(batch);
-      }
-  
-      // Save entries in batches
-      for (const batch of batches) {
-        //using the insertMany method instead of inserting each entry individually. This is more efficient
-        await streamDataEntry.insertMany(batch);
-      }
-  
-      res.status(200).send('File uploaded and entries saved to the database.');
+     res.status(200).send('File has been successfully uploaded.');
     } catch (error) {
       console.error(error);
       res.status(500).send('Error processing the file.');
@@ -49,7 +32,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   
   // Function to normalize MSISDN to international format
   function normalizeMSISDN(msisdn) {
-    // Example: Assuming all MSISDNs start with '0' and you want to replace it with '+234'
+    // Example: Assuming all MSISDNs start with '0' and you want to replace it with '+44'
     return `+44${msisdn.slice(1)}`;
   }
   
